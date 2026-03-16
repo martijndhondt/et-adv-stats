@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ET:Legacy — Advanced Stats</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Exo+2:wght@300;500;700;900&family=Cousine:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #04080c;
+  --surface:  #080f18;
+  --panel:    #0c1a28;
+  --border:   #0d3050;
+  --neon:     #00e5ff;
+  --neon2:    #ff3c6e;
+  --neon3:    #39ff14;
+  --gold:     #ffc107;
+  --text:     #b0cce0;
+  --muted:    #3a6070;
+  --allies:   #4fc3f7;
+  --axis:     #ef5350;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Exo 2', sans-serif;
+  font-size:14px;
+  display:flex;
+  flex-direction:column;
+}
+
+/* CRT flicker */
+body::after {
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
+  background: repeating-linear-gradient(0deg,transparent,transparent 1px,rgba(0,229,255,0.015) 1px,rgba(0,229,255,0.015) 2px);
+  animation: flicker 8s infinite;
+}
+@keyframes flicker{0%,100%{opacity:1}92%{opacity:1}93%{opacity:0.96}94%{opacity:1}97%{opacity:0.98}98%{opacity:1}}
+
+/* ── TOPBAR ── */
+.topbar {
+  display:flex;align-items:center;gap:0;
+  border-bottom:1px solid var(--border);
+  background: linear-gradient(90deg, rgba(0,229,255,0.05) 0%, transparent 60%);
+  flex-shrink:0;
+}
+.logo {
+  padding:12px 24px;
+  font-family:'VT323',monospace;
+  font-size:28px;
+  color:var(--neon);
+  text-shadow:0 0 20px var(--neon), 0 0 40px rgba(0,229,255,0.3);
+  letter-spacing:3px;
+  border-right:1px solid var(--border);
+  white-space:nowrap;
+}
+.logo span{color:var(--neon2);text-shadow:0 0 20px var(--neon2);}
+
+nav{display:flex;flex:1;}
+.nav-btn {
+  padding:14px 22px;
+  font-family:'Exo 2',sans-serif;
+  font-size:12px;font-weight:700;
+  letter-spacing:2px;text-transform:uppercase;
+  color:var(--muted);
+  background:transparent;border:none;border-right:1px solid var(--border);
+  cursor:pointer;transition:all 0.15s;
+  position:relative;
+}
+.nav-btn::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:var(--neon);transform:scaleX(0);transition:transform 0.2s;
+}
+.nav-btn:hover{color:var(--text);background:rgba(0,229,255,0.04);}
+.nav-btn.active{color:var(--neon);background:rgba(0,229,255,0.07);}
+.nav-btn.active::after{transform:scaleX(1);}
+
+.topbar-right{
+  margin-left:auto;padding:0 20px;
+  display:flex;align-items:center;gap:16px;
+}
+.day-select{
+  background:var(--panel);border:1px solid var(--border);
+  color:var(--text);font-family:'Cousine',monospace;font-size:11px;
+  padding:5px 10px;cursor:pointer;outline:none;
+}
+.day-select:hover{border-color:var(--neon);}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--neon3);
+  box-shadow:0 0 8px var(--neon3);animation:pulse 1.4s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.7)}}
+.live-label{font-family:'Cousine',monospace;font-size:10px;color:var(--neon3);letter-spacing:1px;}
+
+/* ── MAIN AREA ── */
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column;}
+.page{display:none;height:100%;overflow-y:auto;padding:20px 24px;}
+.page.active{display:block;}
+
+/* ── STAT CARDS ── */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1px;
+  background:var(--border);margin-bottom:20px;}
+.card{background:var(--surface);padding:18px 20px;text-align:center;}
+.card-val{font-family:'VT323',monospace;font-size:42px;line-height:1;
+  color:var(--neon);text-shadow:0 0 16px rgba(0,229,255,0.5);}
+.card-val.red{color:var(--neon2);text-shadow:0 0 16px rgba(255,60,110,0.5);}
+.card-val.green{color:var(--neon3);text-shadow:0 0 16px rgba(57,255,20,0.5);}
+.card-val.gold{color:var(--gold);text-shadow:0 0 16px rgba(255,193,7,0.5);}
+.card-label{font-family:'Cousine',monospace;font-size:9px;color:var(--muted);
+  letter-spacing:2px;text-transform:uppercase;margin-top:4px;}
+
+/* ── SECTION HEADERS ── */
+.section-title{
+  font-family:'VT323',monospace;font-size:22px;color:var(--neon);
+  letter-spacing:3px;text-transform:uppercase;
+  border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:14px;
+  display:flex;align-items:center;gap:10px;
+}
+.section-title::before{content:'>';color:var(--neon2);}
+
+/* ── TABLES ── */
+.tbl-wrap{background:var(--surface);border:1px solid var(--border);overflow:hidden;margin-bottom:20px;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{font-family:'Cousine',monospace;font-size:9px;letter-spacing:2px;
+  text-transform:uppercase;color:var(--muted);
+  padding:8px 12px;text-align:left;background:var(--panel);
+  border-bottom:1px solid var(--border);}
+th.r,td.r{text-align:right;}
+td{padding:7px 12px;border-bottom:1px solid rgba(13,48,80,0.5);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(0,229,255,0.03);cursor:pointer;}
+
+.neon{color:var(--neon);font-family:'Cousine',monospace;}
+.red {color:var(--neon2);font-family:'Cousine',monospace;}
+.grn {color:var(--neon3);font-family:'Cousine',monospace;}
+.gold{color:var(--gold); font-family:'Cousine',monospace;}
+.dim {color:var(--muted);}
+
+.rank-badge{
+  display:inline-block;
+  font-family:'VT323',monospace;font-size:16px;
+  width:24px;text-align:center;
+}
+.rank-1{color:#ffd700;}
+.rank-2{color:#c0c0c0;}
+.rank-3{color:#cd7f32;}
+
+.team-allies{color:var(--allies);}
+.team-axis  {color:var(--axis);}
+
+.kd-bar{display:inline-block;width:60px;height:3px;background:var(--border);
+  vertical-align:middle;margin-right:6px;}
+.kd-fill{height:100%;background:linear-gradient(90deg,var(--neon2),var(--neon));
+  transition:width 0.5s cubic-bezier(.4,0,.2,1);}
+
+.weapon-icon{font-size:10px;background:var(--panel);border:1px solid var(--border);
+  padding:1px 6px;font-family:'Cousine',monospace;color:var(--muted);margin-right:4px;}
+
+.class-badge{
+  font-size:9px;font-family:'Cousine',monospace;letter-spacing:1px;
+  padding:1px 5px;border:1px solid;
+}
+.class-Soldier   {border-color:#ef5350;color:#ef5350;}
+.class-Medic     {border-color:#66bb6a;color:#66bb6a;}
+.class-Engineer  {border-color:#ffa726;color:#ffa726;}
+.class-FieldOps  {border-color:#ab47bc;color:#ab47bc;}
+.class-CovertOps {border-color:#26c6da;color:#26c6da;}
+
+/* ── TWO-COL LAYOUT ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+@media(max-width:900px){.two-col,.three-col{grid-template-columns:1fr;}}
+
+/* ── PLAYER PROFILE ── */
+.profile-header{
+  display:flex;align-items:flex-start;gap:24px;
+  background:var(--surface);border:1px solid var(--border);
+  padding:20px 24px;margin-bottom:20px;
+}
+.profile-name{
+  font-family:'VT323',monospace;font-size:48px;
+  color:var(--neon);text-shadow:0 0 20px rgba(0,229,255,0.4);
+  line-height:1;
+}
+.profile-meta{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;}
+.meta-tag{font-family:'Cousine',monospace;font-size:10px;letter-spacing:1px;
+  padding:2px 8px;border:1px solid var(--border);color:var(--muted);}
+
+/* ── XP BARS ── */
+.xp-row{display:flex;align-items:center;gap:10px;padding:5px 0;
+  border-bottom:1px solid rgba(13,48,80,0.4);}
+.xp-row:last-child{border-bottom:none;}
+.xp-skill{font-family:'Cousine',monospace;font-size:10px;color:var(--muted);
+  width:110px;flex-shrink:0;letter-spacing:1px;}
+.xp-bar-wrap{flex:1;height:4px;background:var(--border);}
+.xp-bar-fill{height:100%;background:var(--neon);box-shadow:0 0 6px var(--neon);}
+.xp-val{font-family:'Cousine',monospace;font-size:11px;color:var(--neon);
+  width:36px;text-align:right;flex-shrink:0;}
+
+/* ── LOADING ── */
+.loading{font-family:'Cousine',monospace;font-size:11px;color:var(--muted);
+  padding:40px;text-align:center;letter-spacing:2px;animation:blink 1s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+.error{font-family:'Cousine',monospace;font-size:11px;color:var(--neon2);
+  background:rgba(255,60,110,0.07);border:1px solid rgba(255,60,110,0.3);
+  padding:12px 16px;margin:12px 0;}
+
+/* ── MAP ACCORDION ── */
+.map-card{background:var(--surface);border:1px solid var(--border);margin-bottom:12px;}
+.map-hdr{display:flex;align-items:center;justify-content:space-between;
+  padding:10px 16px;cursor:pointer;user-select:none;
+  background:var(--panel);border-bottom:1px solid var(--border);}
+.map-hdr:hover{background:rgba(0,229,255,0.04);}
+.map-title{font-family:'VT323',monospace;font-size:20px;color:var(--neon);
+  letter-spacing:2px;text-transform:uppercase;}
+.map-badges{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.badge{font-family:'Cousine',monospace;font-size:9px;letter-spacing:1px;
+  padding:2px 7px;border:1px solid var(--border);color:var(--muted);}
+.badge.neon{border-color:rgba(0,229,255,0.3);color:var(--neon);}
+.map-body{display:block;overflow:hidden;}
+.map-card.collapsed .map-body{display:none;}
+.toggle{font-size:10px;color:var(--muted);transition:transform 0.2s;}
+.map-card.collapsed .toggle{transform:rotate(-90deg);}
+
+/* ── WEAPON CHART ── */
+.wep-chart{padding:12px 0;}
+.wep-row{display:flex;align-items:center;gap:10px;padding:4px 16px;}
+.wep-name{font-family:'Cousine',monospace;font-size:10px;color:var(--muted);
+  width:160px;flex-shrink:0;letter-spacing:1px;}
+.wep-bar-wrap{flex:1;height:6px;background:var(--border);}
+.wep-bar-fill{height:100%;background:linear-gradient(90deg,var(--neon2),var(--neon));
+  box-shadow:0 0 8px rgba(0,229,255,0.3);}
+.wep-kills{font-family:'Cousine',monospace;font-size:11px;color:var(--neon);
+  width:40px;text-align:right;flex-shrink:0;}
+
+footer{flex-shrink:0;border-top:1px solid var(--border);padding:6px 24px;
+  display:flex;justify-content:space-between;
+  font-family:'Cousine',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">ET:<span>ADV</span>STATS</div>
+  <nav>
+    <button class="nav-btn active" onclick="nav('overview')">Overview</button>
+    <button class="nav-btn" onclick="nav('maps')">Maps</button>
+    <button class="nav-btn" onclick="nav('players')">Players</button>
+    <button class="nav-btn" onclick="nav('weapons')">Weapons</button>
+    <button class="nav-btn" onclick="nav('xp')">XP Ranks</button>
+  </nav>
+  <div class="topbar-right">
+    <select class="day-select" id="day-sel" onchange="onDayChange()"></select>
+    <div class="live-dot"></div>
+    <div class="live-label" id="update-time">--:--:--</div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ── OVERVIEW ── -->
+  <div class="page active" id="page-overview">
+    <div id="ov-cards" class="cards"></div>
+    <div class="two-col">
+      <div>
+        <div class="section-title">Today's Top Killers</div>
+        <div class="tbl-wrap"><div id="ov-killers"><div class="loading">LOADING...</div></div></div>
+      </div>
+      <div>
+        <div class="section-title">Weapon Usage Today</div>
+        <div class="tbl-wrap" id="ov-weapons"><div class="loading">LOADING...</div></div>
+      </div>
+    </div>
+    <div class="two-col">
+      <div>
+        <div class="section-title">Support Stats Today</div>
+        <div class="tbl-wrap"><div id="ov-support"><div class="loading">LOADING...</div></div></div>
+      </div>
+      <div>
+        <div class="section-title">Class Distribution</div>
+        <div class="tbl-wrap"><div id="ov-classes"><div class="loading">LOADING...</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MAPS ── -->
+  <div class="page" id="page-maps">
+    <div id="maps-list"><div class="loading">LOADING...</div></div>
+  </div>
+
+  <!-- ── PLAYERS ── -->
+  <div class="page" id="page-players">
+    <div id="page-players-content">
+      <div class="section-title">All-Time Player Rankings</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>#</th><th>Player</th><th>Fav Class</th><th>Fav Team</th>
+            <th class="r">Kills</th><th class="r">Deaths</th><th class="r">K/D</th>
+            <th class="r">TK</th><th class="r">Streak</th>
+            <th class="r">Revives</th><th class="r">Dynaplants</th><th class="r">Time</th>
+          </tr></thead>
+          <tbody id="players-tbody"><tr><td colspan="12" class="loading">LOADING...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div id="page-profile" style="display:none"></div>
+  </div>
+
+  <!-- ── WEAPONS ── -->
+  <div class="page" id="page-weapons">
+    <div class="two-col">
+      <div>
+        <div class="section-title">All-Time Weapon Kills</div>
+        <div id="wep-alltime" class="tbl-wrap"><div class="loading">LOADING...</div></div>
+      </div>
+      <div>
+        <div class="section-title">Today's Weapon Kills</div>
+        <div id="wep-today" class="tbl-wrap"><div class="loading">LOADING...</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── XP ── -->
+  <div class="page" id="page-xp">
+    <div class="section-title">XP Rankings (Persistent)</div>
+    <div id="xp-list"><div class="loading">LOADING...</div></div>
+  </div>
+
+</div>
+
+<footer>
+  <span>ET:Legacy Advanced Statistics</span>
+  <span id="footer-clock"></span>
+</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const fmt = n => (n ?? 0).toLocaleString();
+const kd  = (k,d) => d > 0 ? (k/d).toFixed(2) : k > 0 ? '∞' : '0.00';
+const fmtTime = s => { if(!s) return '—'; const m=Math.floor(s/60); return `${m}m`; };
+const fmtDur  = s => { if(!s) return ''; const m=Math.floor(s/60); const ss=s%60; return `${m}:${String(ss).padStart(2,'0')}`; };
+
+let currentDay = '';
+let allMapsData = [];
+let allPlayersData = [];
+
+// ── NAV ──────────────────────────────────────────────────────────────────────
+function nav(page, push=true) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  $('page-' + page)?.classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    if(b.textContent.toLowerCase().includes(page.split('-')[0])) b.classList.add('active');
+  });
+  // Hide profile, show list when navigating to players
+  if(page === 'players') {
+    $('page-players-content').style.display = '';
+    $('page-profile').style.display = 'none';
+  }
+  if(push) history.pushState({page}, '', '#' + page);
+}
+
+window.onpopstate = e => e.state?.page && nav(e.state.page, false);
+
+// ── DAY SELECT ───────────────────────────────────────────────────────────────
+async function loadDays() {
+  const res = await fetch('/api/available_days');
+  const days = await res.json();
+  const sel = $('day-sel');
+  sel.innerHTML = '';
+  const today = new Date().toISOString().slice(0,10);
+  days.forEach(d => {
+    const o = document.createElement('option');
+    o.value = o.textContent = d;
+    if(d === today) o.selected = true;
+    sel.appendChild(o);
+  });
+  if(!sel.value && days.length) sel.value = days[0];
+  currentDay = sel.value;
+}
+
+function onDayChange() {
+  currentDay = $('day-sel').value;
+  refreshAll();
+}
+
+// ── OVERVIEW ─────────────────────────────────────────────────────────────────
+async function loadOverview() {
+  const [ov, maps] = await Promise.all([
+    fetch('/api/overview?day=' + currentDay).then(r => r.json()),
+    fetch('/api/maps?day=' + currentDay).then(r => r.json()),
+  ]);
+
+  // Cards
+  const kpm = ov.total_maps > 0 ? Math.round(ov.total_kills / ov.total_maps) : 0;
+  $('ov-cards').innerHTML = `
+    <div class="card"><div class="card-val">${fmt(ov.total_maps)}</div><div class="card-label">Maps Played</div></div>
+    <div class="card"><div class="card-val red">${fmt(ov.total_kills)}</div><div class="card-label">Total Kills</div></div>
+    <div class="card"><div class="card-val">${fmt(ov.unique_players)}</div><div class="card-label">Unique Players</div></div>
+    <div class="card"><div class="card-val green">${fmt(ov.total_revives)}</div><div class="card-label">Revives</div></div>
+    <div class="card"><div class="card-val gold">${fmt(ov.total_dynaplants)}</div><div class="card-label">Dynaplants</div></div>
+    <div class="card"><div class="card-val">${fmt(kpm)}</div><div class="card-label">Kills / Map</div></div>
+  `;
+
+  // Aggregate players from maps
+  const agg = {};
+  maps.forEach(m => m.players.forEach(p => {
+    if(!agg[p.player_name]) agg[p.player_name] = {kills:0,deaths:0,revives:0,hp:0,ap:0,dyna:0,classes:{}};
+    const a = agg[p.player_name];
+    a.kills += p.kills; a.deaths += p.deaths;
+    a.revives += p.revives; a.hp += p.health_packs;
+    a.ap += p.ammo_packs; a.dyna += p.dynamite_plants;
+    if(p.class) a.classes[p.class] = (a.classes[p.class]||0)+1;
+  }));
+  const sorted = Object.entries(agg).sort((a,b)=>b[1].kills-a[1].kills);
+
+  // Top killers
+  const maxK = sorted[0]?.[1].kills || 1;
+  $('ov-killers').innerHTML = `<table>
+    <thead><tr><th>#</th><th>Player</th><th class="r">Kills</th><th class="r">Deaths</th><th class="r">K/D</th><th>Activity</th></tr></thead>
+    <tbody>${sorted.slice(0,15).map(([name,s],i)=>`
+      <tr onclick="showProfile('${esc(name)}')">
+        <td><span class="rank-badge rank-${i+1}">${i<3?['①','②','③'][i]:i+1}</span></td>
+        <td><span class="${i===0?'neon':''}">${esc(name)}</span></td>
+        <td class="r neon">${s.kills}</td>
+        <td class="r red">${s.deaths}</td>
+        <td class="r dim">${kd(s.kills,s.deaths)}</td>
+        <td><div class="kd-bar"><div class="kd-fill" style="width:${Math.round(s.kills/maxK*100)}%"></div></div></td>
+      </tr>`).join('')}</tbody></table>`;
+
+  // Weapon usage
+  const wepAgg = {};
+  maps.forEach(m => m.weapons.forEach(w => wepAgg[w.weapon] = (wepAgg[w.weapon]||0) + w.k));
+  const weps = Object.entries(wepAgg).sort((a,b)=>b[1]-a[1]);
+  const maxW = weps[0]?.[1] || 1;
+  $('ov-weapons').innerHTML = `<div class="wep-chart">${weps.map(([w,k])=>`
+    <div class="wep-row">
+      <div class="wep-name">${esc(w)}</div>
+      <div class="wep-bar-wrap"><div class="wep-bar-fill" style="width:${Math.round(k/maxW*100)}%"></div></div>
+      <div class="wep-kills">${k}</div>
+    </div>`).join('')}</div>`;
+
+  // Support stats
+  $('ov-support').innerHTML = `<table>
+    <thead><tr><th>Player</th><th class="r">Revives</th><th class="r">Health</th><th class="r">Ammo</th><th class="r">Dyna</th></tr></thead>
+    <tbody>${sorted.filter(([,s])=>s.revives+s.hp+s.ap+s.dyna>0)
+      .sort((a,b)=>b[1].revives-a[1].revives).slice(0,12)
+      .map(([name,s])=>`<tr onclick="showProfile('${esc(name)}')">
+        <td>${esc(name)}</td>
+        <td class="r grn">${s.revives||'—'}</td>
+        <td class="r">${s.hp||'—'}</td>
+        <td class="r">${s.ap||'—'}</td>
+        <td class="r gold">${s.dyna||'—'}</td>
+      </tr>`).join('')}
+    </tbody></table>`;
+
+  // Class distribution
+  const classAgg = {};
+  sorted.forEach(([,s])=>Object.entries(s.classes).forEach(([c,n])=>classAgg[c]=(classAgg[c]||0)+n));
+  const classes = Object.entries(classAgg).sort((a,b)=>b[1]-a[1]);
+  const maxC = classes[0]?.[1]||1;
+  $('ov-classes').innerHTML = `<div class="wep-chart">${classes.map(([c,n])=>`
+    <div class="wep-row">
+      <div class="wep-name"><span class="class-badge class-${c}">${c.toUpperCase()}</span></div>
+      <div class="wep-bar-wrap"><div class="wep-bar-fill" style="width:${Math.round(n/maxC*100)}%;background:var(--neon3)"></div></div>
+      <div class="wep-kills">${n}</div>
+    </div>`).join('')}</div>`;
+}
+
+// ── MAPS PAGE ────────────────────────────────────────────────────────────────
+async function loadMaps() {
+  const maps = await fetch('/api/maps?day=' + currentDay).then(r => r.json());
+  allMapsData = maps;
+  if(!maps.length) { $('maps-list').innerHTML = '<div class="loading" style="animation:none;opacity:0.4">NO MAPS FOR THIS DATE</div>'; return; }
+
+  const display = maps;
+  const maxK = Math.max(...display.flatMap(m=>m.players.map(p=>p.kills)), 1);
+
+  $('maps-list').innerHTML = display.map((m, mi) => {
+    const dur = m.duration_s ? fmtDur(m.duration_s) : '';
+    // started_at is ISO: "2026-02-25T19:17:00" — show HH:MM
+    const startTime = m.started_at ? m.started_at.slice(11,16) : '';
+    const allies = m.players.filter(p=>p.team==='Allies');
+    const axis   = m.players.filter(p=>p.team==='Axis');
+    const rows = m.players.map((p,i) => `
+      <tr onclick="showProfile('${esc(p.player_name)}')">
+        <td><span class="rank-badge ${i<3?'rank-'+(i+1):''}">${i+1}</span></td>
+        <td>${esc(p.player_name)}</td>
+        <td><span class="class-badge class-${p.class||''}">${p.class||'—'}</span></td>
+        <td class="${p.team==='Allies'?'team-allies':p.team==='Axis'?'team-axis':'dim'}">${p.team||'—'}</td>
+        <td class="r neon">${p.kills}</td>
+        <td class="r red">${p.deaths}</td>
+        <td class="r dim">${kd(p.kills,p.deaths)}</td>
+        <td class="r" style="color:#ef9a9a">${p.team_kills||'—'}</td>
+        <td class="r gold">${p.kill_streak||'—'}</td>
+        <td class="r grn">${p.revives||'—'}</td>
+        <td class="r">${p.dynamite_plants||'—'}</td>
+        <td class="r dim">${fmtTime(p.time_played_s)}</td>
+        <td>
+          <div class="kd-bar"><div class="kd-fill" style="width:${Math.round((p.kills/maxK)*100)}%"></div></div>
+        </td>
+      </tr>`).join('');
+
+    const wepRows = m.weapons.slice(0,5).map(w=>`
+      <span class="weapon-icon">${esc(w.weapon).replace('MOD_','')} ×${w.k}</span>`).join('');
+
+    return `<div class="map-card" id="map-${m.id}">
+      <div class="map-hdr" onclick="toggleMap(${m.id})">
+        <div>
+          <div class="map-title">${esc(m.map_name)}</div>
+          <div style="font-family:'Cousine',monospace;font-size:9px;color:var(--muted);margin-top:3px">
+            ${startTime ? 'STARTED ' + startTime : ''} ${dur ? '· DURATION ' + dur : ''}
+          </div>
+        </div>
+        <div class="map-badges">
+          ${wepRows}
+          <span class="badge neon">${m.total_kills} KILLS</span>
+          <span class="badge">${allies.length} vs ${axis.length}</span>
+          <span class="badge">${m.players.length} PLAYERS</span>
+          <span class="toggle">▼</span>
+        </div>
+      </div>
+      <div class="map-body">
+        <table>
+          <thead><tr>
+            <th>#</th><th>Player</th><th>Class</th><th>Team</th>
+            <th class="r">K</th><th class="r">D</th><th class="r">K/D</th>
+            <th class="r">TK</th><th class="r">Streak</th>
+            <th class="r">Rev</th><th class="r">Dyna</th><th class="r">Time</th>
+            <th>Activity</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleMap(id) {
+  document.getElementById('map-' + id)?.classList.toggle('collapsed');
+}
+
+// ── PLAYERS PAGE ─────────────────────────────────────────────────────────────
+async function loadPlayers() {
+  const players = await fetch('/api/players').then(r => r.json());
+  allPlayersData = players;
+  const maxK = players[0]?.total_kills || 1;
+  $('players-tbody').innerHTML = players.map((p,i) => `
+    <tr onclick="showProfile('${esc(p.player_name)}')">
+      <td><span class="rank-badge ${i<3?'rank-'+(i+1):''}">${i+1}</span></td>
+      <td><span class="${i===0?'neon':''}">${esc(p.player_name)}</span></td>
+      <td><span class="class-badge class-${p.fav_class||''}">${p.fav_class||'—'}</span></td>
+      <td class="dim">${p.fav_team||'—'}</td>
+      <td class="r neon">${fmt(p.total_kills)}</td>
+      <td class="r red">${fmt(p.total_deaths)}</td>
+      <td class="r dim">${kd(p.total_kills,p.total_deaths)}</td>
+      <td class="r" style="color:#ef9a9a">${p.total_tk||'—'}</td>
+      <td class="r gold">${p.best_streak||'—'}</td>
+      <td class="r grn">${p.total_revives||'—'}</td>
+      <td class="r">${p.total_dynaplants||'—'}</td>
+      <td class="r dim">${fmtTime(p.total_time)}</td>
+    </tr>`).join('');
+}
+
+// ── PLAYER PROFILE ───────────────────────────────────────────────────────────
+async function showProfile(name) {
+  nav('players', true);
+  $('page-players-content').style.display = 'none';
+  $('page-profile').style.display = '';
+  $('page-profile').innerHTML = '<div class="loading">LOADING PROFILE...</div>';
+
+  const data = await fetch('/api/player/' + encodeURIComponent(name)).then(r => r.json());
+  const s = data.stats;
+  const maxXP = Math.max(...Object.values(data.xp), 1);
+  const maxW  = data.weapons[0]?.k || 1;
+
+  const xpRows = Object.entries(data.xp).map(([skill, val]) => `
+    <div class="xp-row">
+      <div class="xp-skill">${skill.toUpperCase()}</div>
+      <div class="xp-bar-wrap"><div class="xp-bar-fill" style="width:${Math.round(val/maxXP*100)}%"></div></div>
+      <div class="xp-val">${val}</div>
+    </div>`).join('');
+
+  const histRows = data.history.map(h => `
+    <tr>
+      <td class="dim">${h.day}</td>
+      <td class="neon">${esc(h.map_name)}</td>
+      <td><span class="class-badge class-${h.class||''}">${h.class||'—'}</span></td>
+      <td class="${h.team==='Allies'?'team-allies':h.team==='Axis'?'team-axis':'dim'}">${h.team||'—'}</td>
+      <td class="r neon">${h.kills}</td>
+      <td class="r red">${h.deaths}</td>
+      <td class="r dim">${kd(h.kills,h.deaths)}</td>
+      <td class="r gold">${h.kill_streak||'—'}</td>
+      <td class="r grn">${h.revives||'—'}</td>
+      <td class="r dim">${fmtTime(h.time_played_s)}</td>
+    </tr>`).join('');
+
+  $('page-profile').innerHTML = `
+    <button onclick="backToPlayers()" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'Cousine',monospace;font-size:10px;padding:5px 12px;cursor:pointer;margin-bottom:16px;letter-spacing:1px;">◀ BACK</button>
+    <div class="profile-header">
+      <div style="flex:1">
+        <div class="profile-name">${esc(name)}</div>
+        <div class="profile-meta">
+          <span class="meta-tag">CLASS: ${data.fav_class}</span>
+          <span class="meta-tag">TEAM: ${data.fav_team}</span>
+          <span class="meta-tag">${s.maps} MAPS PLAYED</span>
+          <span class="meta-tag">TOTAL XP: ${Object.values(data.xp).reduce((a,b)=>a+b,0)}</span>
+        </div>
+      </div>
+    </div>
+    <div class="three-col" style="margin-bottom:20px">
+      <div class="cards" style="margin:0">
+        <div class="card"><div class="card-val red">${fmt(s.k)}</div><div class="card-label">Kills</div></div>
+        <div class="card"><div class="card-val">${fmt(s.d)}</div><div class="card-label">Deaths</div></div>
+        <div class="card"><div class="card-val">${kd(s.k,s.d)}</div><div class="card-label">K/D Ratio</div></div>
+        <div class="card"><div class="card-val gold">${s.best_streak||0}</div><div class="card-label">Best Streak</div></div>
+        <div class="card"><div class="card-val green">${fmt(s.rev)}</div><div class="card-label">Revives</div></div>
+        <div class="card"><div class="card-val">${fmt(s.dyna)}</div><div class="card-label">Dynaplants</div></div>
+      </div>
+      <div>
+        <div class="section-title">XP Skills</div>
+        <div class="tbl-wrap" style="padding:12px 16px">${xpRows || '<div class="dim" style="padding:8px;font-family:Cousine,monospace;font-size:11px">No XP data</div>'}</div>
+      </div>
+      <div>
+        <div class="section-title">Weapons</div>
+        <div class="wep-chart tbl-wrap">${data.weapons.map(w=>`
+          <div class="wep-row">
+            <div class="wep-name">${esc(w.weapon).replace('MOD_','')}</div>
+            <div class="wep-bar-wrap"><div class="wep-bar-fill" style="width:${Math.round(w.k/maxW*100)}%"></div></div>
+            <div class="wep-kills">${w.k}</div>
+          </div>`).join('')}</div>
+      </div>
+    </div>
+    <div class="section-title">Match History</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>Date</th><th>Map</th><th>Class</th><th>Team</th>
+          <th class="r">K</th><th class="r">D</th><th class="r">K/D</th>
+          <th class="r">Streak</th><th class="r">Rev</th><th class="r">Time</th>
+        </tr></thead>
+        <tbody>${histRows || '<tr><td colspan="10" class="dim loading" style="animation:none">No history</td></tr>'}</tbody>
+      </table>
+    </div>`;
+}
+
+function backToPlayers() {
+  $('page-players-content').style.display = '';
+  $('page-profile').style.display = 'none';
+}
+
+// ── WEAPONS PAGE ──────────────────────────────────────────────────────────────
+async function loadWeapons() {
+  const [all, today] = await Promise.all([
+    fetch('/api/weapons').then(r=>r.json()),
+    fetch('/api/weapons?day=' + currentDay).then(r=>r.json()),
+  ]);
+
+  const renderWeps = (data, el) => {
+    const maxK = data[0]?.k || 1;
+    el.innerHTML = `<div class="wep-chart">${data.map(w=>`
+      <div class="wep-row">
+        <div class="wep-name">${esc(w.weapon)}</div>
+        <div class="wep-bar-wrap"><div class="wep-bar-fill" style="width:${Math.round(w.k/maxK*100)}%"></div></div>
+        <div class="wep-kills">${w.k}</div>
+      </div>`).join('')}</div>
+      <table>
+        <thead><tr><th>Weapon</th><th class="r">Kills</th><th class="r">Players Using</th></tr></thead>
+        <tbody>${data.map(w=>`<tr>
+          <td>${esc(w.weapon)}</td>
+          <td class="r neon">${fmt(w.k)}</td>
+          <td class="r dim">${w.players}</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+  };
+  renderWeps(all,   $('wep-alltime'));
+  renderWeps(today, $('wep-today'));
+}
+
+// ── XP PAGE ───────────────────────────────────────────────────────────────────
+async function loadXP() {
+  const data = await fetch('/api/xp').then(r=>r.json());
+  if(data.error) { $('xp-list').innerHTML = `<div class="error">${esc(data.error)}</div>`; return; }
+  const maxXP = data[0]?.total_xp || 1;
+  $('xp-list').innerHTML = `
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Player</th><th class="r">Total XP</th>
+          <th class="r">Battle Sense</th><th class="r">Engineering</th>
+          <th class="r">First Aid</th><th class="r">Signals</th>
+          <th class="r">Light Wpn</th><th class="r">Heavy Wpn</th><th class="r">Covert</th>
+        </tr></thead>
+        <tbody>${data.map((p,i)=>`<tr>
+          <td><span class="rank-badge ${i<3?'rank-'+(i+1):''}">${i+1}</span></td>
+          <td class="${i===0?'neon':''}">${esc(p.name)}</td>
+          <td class="r gold">${fmt(p.total_xp)}</td>
+          ${Object.values(p.skills).map(v=>`<td class="r dim">${v||'—'}</td>`).join('')}
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>`;
+}
+
+// ── REFRESH ───────────────────────────────────────────────────────────────────
+function refreshAll() {
+  loadOverview();
+  loadMaps();
+  loadPlayers();
+  loadWeapons();
+  loadXP();
+}
+
+function tick() {
+  const now = new Date();
+  const t = now.toLocaleTimeString();
+  $('footer-clock').textContent = t;
+  $('update-time').textContent = t;
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+(async () => {
+  await loadDays();
+  refreshAll();
+  setInterval(refreshAll, 60_000);
+  setInterval(tick, 1000);
+  tick();
+})();
+</script>
+</body>
+</html>
