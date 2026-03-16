@@ -69,8 +69,8 @@ guid = fb66d33ce37d6017bf1dfb2b2e393f11
 timestamp = 1773435775
 ip = 192.168.0.61
 mac = 34:5a:60:05:ec:07
-name = Thufke
-namex = Thufke
+name = Newbie
+namex = Newbie
 authLevel = 0
 greetingText = 
 greetingAudio = 
@@ -143,7 +143,7 @@ The system uses **three sources** for GUID-to-name mappings:
 ```
 #  Player              Kills  Deaths  K/D    Streak  Time
 1  [BOT]Putin           423    198    2.14    21    145m
-2  Thufke               387    215    1.80    15    132m
+2  Newbie               387    215    1.80    15    132m
 3  [BOT]Fullmonty       356    203    1.75    22    128m
 4  [BOT]Cledus          298    187    1.59    15    117m
 ```
@@ -151,7 +151,7 @@ The system uses **three sources** for GUID-to-name mappings:
 ### XP Rankings
 ```
 #  Player              Total XP  Battle  Eng  First  Signals  Light  Heavy  Covert
-1  Thufke                 445     176    36    0      71      159     3      0
+1  Newbie                 445     176    36    0      71      159     3      0
 2  [BOT]Putin             387     145    42    18     56      126     0      0
 3  [BOT]Cledus            324     121    28    15     48      112     0      0
 ```
